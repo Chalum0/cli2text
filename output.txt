@@ -1,0 +1,548 @@
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: app.js
+File Size: 4.5 KB
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\app.js
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+import fs from 'node:fs';
+import path from 'node:path';
+// import ignore from 'ignore';
+
+const DEFAULT_IGNORES = ["node_modules",
+                                 ".git",
+                                 "package.json",
+                                 "package-lock.json",
+                                 "output.txt",
+                                 ".nodeignore",
+                                 ".gitignore",
+                                 "cli2text.js"
+];
+
+const PROJECT_ROOT = process.cwd();
+// gets the project's root
+
+function loadIgnoreFile(){
+    // returns the .nodeignore file to know which files will not be in the final result
+    const ignoreFilePath = path.join(PROJECT_ROOT, '.nodeignore');
+    let ignorePatterns = '';
+    if (fs.existsSync(ignoreFilePath)) {
+        ignorePatterns = fs.readFileSync(ignoreFilePath, 'utf8');
+    }
+    return ignorePatterns.split('\n').map(line => line.trim()).filter(line => line);
+}
+
+function getFileTree(root, ignoredFiles) {
+    function buildTree(dir, ignoredFilesList) {
+        const tree = {};
+        const items = fs.readdirSync(dir);
+        for (const item of items) {
+            // Skip items in the ignore list
+            if (ignoredFilesList.includes(item)) {
+                continue;
+            }
+
+            const fullPath = path.join(dir, item);
+            const stats = fs.statSync(fullPath);
+
+            if (stats.isDirectory()) {
+                tree[item] = buildTree(fullPath, ignoredFilesList); // Recurse into subdirectories
+            } else {
+                tree[item] = null; // Add files
+            }
+        }
+
+        return tree;
+    }
+    return buildTree(root, ignoredFiles)
+}
+
+function displayTree(tree){
+    /**
+         * @param {Object} tree
+     */
+    function displayItems(tree, deep){
+        Object.entries(tree).forEach(([key, value]) => {
+             if (!value){
+                 console.log(`${"  ".repeat(deep)}📄${key}`)
+             }
+             else{
+                 console.log(`${"  ".repeat(deep)}📂${key}`)
+                 displayItems(value, deep+1)
+             }
+        })
+    }
+    displayItems(tree, 0)
+}
+
+function getFilesPath(tree, rootPath){
+    let paths = [];
+    Object.entries(tree).forEach(([key, value]) => {
+        if (!value){
+            paths.push(path.join(rootPath, key));
+        }
+        else{
+            paths = [...paths, ...getFilesPath(value, path.join(rootPath, key))];
+        }
+
+    })
+    return paths
+}
+
+function formatBytes(bytes) {
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) return '0 Bytes';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function output(filePaths){
+    const outputFilePath = './output.txt';
+    let outputContent = '';
+    filePaths.forEach((filePath) => {
+        try {
+            // Check if file exists
+            if (!fs.existsSync(filePath)) {
+                console.warn(`File not found: ${filePath}`);
+                return;
+            }
+
+            // Get file metadata
+            const stats = fs.statSync(filePath);
+            const fileName = path.basename(filePath);
+            const fileSize = formatBytes(stats.size);
+
+            // Read file content
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
+
+            // Append metadata and content to output
+            outputContent += `${"-".repeat(50)}\n${"-".repeat(50)}\n`;
+            outputContent += "Info:\n"
+            outputContent += `${"-".repeat(50)}\n${"-".repeat(50)}\n`;
+            outputContent += `File Name: ${fileName}\n`;
+            outputContent += `File Size: ${fileSize}\n`;
+            outputContent += `File Path: ${filePath}\n`;
+            outputContent += `${"-".repeat(50)}\n${"-".repeat(50)}\n`;
+            outputContent += "Content:\n"
+            outputContent += `${"-".repeat(50)}\n${"-".repeat(50)}\n`;
+            outputContent += fileContent + '\n\n';
+        } catch (error) {
+            console.error(`Error processing file ${filePath}:`, error.message);
+        }
+    });
+
+    // Write the final content to the output file
+    fs.writeFileSync(outputFilePath, outputContent, 'utf-8');
+    console.log(`Output written to ${outputFilePath}`);
+}
+
+const IGNORED_FILES = [...DEFAULT_IGNORES, ...loadIgnoreFile()];
+const tree = getFileTree(PROJECT_ROOT, IGNORED_FILES)
+displayTree(tree);
+output(getFilesPath(tree, PROJECT_ROOT))
+
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: README.md
+File Size: 4.33 KB
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\README.md
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+# 🛠️ Projet `Node.js`
+
+📋 Le README présenté ci-dessous décrit un projet conceptuel qui n'a pas encore été développé.  
+
+🗺️ Votre mission consiste à créer ce projet en implémentant toutes les fonctionnalités spécifiées, en respectant les détails techniques et les règles de fonctionnement énoncées. Il s'agit de coder un outil Node.js complet, capable d'analyser les répertoires, de générer une représentation structurée de leur contenu, et de produire une sortie formatée conforme aux attentes décrites.  
+
+✅ Assurez-vous de suivre **précisément les instructions** pour garantir que le projet final correspond au fonctionnement attendu.  
+
+📊 Pendant le développement, vous pouvez tester l'outil sur le dossier ``./src`` fourni afin de vérifier qu'il fonctionne correctement..
+
+# Node.js Directory Processor - **cli2text** 🚀
+
+This Node.js project provides a command-line tool for recursively processing directories and generating a structured representation of their contents. It is designed to exclude unnecessary files, format file sizes for readability, and produce outputs suitable for further analysis or reporting.
+
+## 🌟 How It Works
+
+1. **Scan the Current Directory**: The tool scans the directory from where the script is executed.
+2. **Skip Ignored Items**: Excluded files and directories are skipped based on the `IGNORE` array.
+3. **Log and Save**: Outputs the directory structure to the console and writes it to `output.txt` in the current directory.
+
+## ✨ Features
+
+- **Recursive Directory Traversal**: Efficiently processes all files and subdirectories in the current directory.
+- **Exclusion Rules**: Skips predefined files and directories like `node_modules` and `.git` to focus on relevant content.
+- **Human-Readable File Sizes**: Converts raw byte sizes into readable units (e.g., KB, MB).
+- **Automated Output**: Always generates the output in an `output.txt` file in the current directory.
+- **Colorized CLI Output**: Uses `chalk` to display directory and file names in a visually appealing manner.
+
+## 🛠️ Prerequisites
+
+Before using this tool, ensure that you have the following installed on your system:
+
+- [Node.js](https://nodejs.org/) (v16 or later)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+
+## 🚀 Installation
+
+1. Clone this repository:
+
+   ```bash
+   git clone <repository-url>
+   cd <repository-folder>
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+   Or, if using Yarn:
+
+   ```bash
+   yarn install
+   ```
+
+## 🎯 Usage
+
+### Running the Tool
+
+Execute the script with Node.js. No arguments are required; the tool processes the current directory and automatically generates an `output.txt` file.
+
+```bash
+node cli2text.js
+```
+
+### Example Output *
+
+- **Directories** are displayed with a `📂` icon in green.
+- **Files** include their names and sizes, formatted for readability, displayed in green with a `📄` icon.
+- **Indented Structure** reflects the hierarchy of the directory tree.
+
+```text
+File and folder tree for : ./
+
+📄 cli2output.js
+📂 demo
+   📄 data.txt
+   📂 data_1
+      📄 data_1.csv
+📄 index.html
+📄 index.js
+
+Compilation completed. Content saved in "output.txt"
+```
+
+\* Colors are not displayed in README.md example
+
+### Exclusion Rules
+
+By default, the following files and directories are ignored:
+
+- `node_modules`
+- `.git`
+- `package.json`
+- `package-lock.json`
+- `output.txt`
+
+To exclude additional files or directories, update the `IGNORE` array in `cli2text.js`:
+
+```javascript
+const IGNORE = [
+  "node_modules",
+  ".git",
+  "package.json",
+  "package-lock.json",
+  "output.txt",
+  // Add more files/directories here
+];
+```
+
+## 📄 Code Overview
+
+### Key Functions
+
+#### `formatSize(bytes)`
+
+Converts a byte value into human-readable units (e.g., KB, MB).
+
+#### `processTree(directory, indent, compiledContent)`
+
+Traverses the directory structure recursively:
+- Logs directories and files to the console.
+- Appends structured data to `compiledContent`.
+- Writes the final output to `output.txt` in the current directory.
+
+### Dependencies
+
+- **`fs/promises`**: Handles asynchronous file system operations.
+- **`path`**: Constructs file and directory paths.
+- **`chalk` (vendor)**: Adds colorized output for better readability.
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: taskItem.html
+File Size: 116 Bytes
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\src\components\taskItem.html
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+<li class="task-item">
+  <input type="checkbox">
+  <span>Task text here</span>
+  <button>Delete</button>
+</li>
+
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: styles.css
+File Size: 774 Bytes
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\src\css\styles.css
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f0f0f0;
+}
+
+header {
+  background: #6200ea;
+  color: #fff;
+  text-align: center;
+  padding: 1rem;
+}
+
+.logo {
+  width: 50px;
+  height: auto;
+  display: inline-block;
+}
+
+#app {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 10px;
+  background: #fff;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#task-list {
+  list-style: none;
+  padding: 0;
+}
+
+#task-form {
+  display: flex;
+  gap: 10px;
+}
+
+#task-input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  background: #6200ea;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: themes.css
+File Size: 0 Bytes
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\src\css\themes.css
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: tasks.json
+File Size: 126 Bytes
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\src\data\tasks.json
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+[
+  { "id": 1, "text": "Sample Task 1", "completed": false },
+  { "id": 2, "text": "Sample Task 2", "completed": true }
+]
+
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: index.html
+File Size: 757 Bytes
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\src\index.html
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="assets/favicon.ico">
+</head>
+<body>
+  <header>
+    <h1>To-Do List</h1>
+    <img src="assets/logo.png" alt="App Logo" class="logo">
+  </header>
+  <main id="app">
+    <ul id="task-list"></ul>
+    <form id="task-form">
+      <input type="text" id="task-input" placeholder="Add a new task" required>
+      <button type="submit">Add Task</button>
+    </form>
+  </main>
+  <footer>
+    <p>&copy; 2025 To-Do List App</p>
+  </footer>
+  <script src="js/app.js" type="module"></script>
+</body>
+</html>
+
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: app.js
+File Size: 523 Bytes
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\src\js\app.js
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+import { saveTask, getTasks } from './storage.js';
+import { renderTasks } from './dom.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+  const taskForm = document.getElementById('task-form');
+  const taskInput = document.getElementById('task-input');
+
+  taskForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const task = taskInput.value.trim();
+    if (task) {
+      saveTask(task);
+      taskInput.value = '';
+      renderTasks();
+    }
+  });
+
+  renderTasks();
+});
+
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: dom.js
+File Size: 341 Bytes
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\src\js\dom.js
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+import { getTasks } from './storage.js';
+
+export function renderTasks() {
+  const taskList = document.getElementById('task-list');
+  taskList.innerHTML = '';
+
+  const tasks = getTasks();
+  tasks.forEach(task => {
+    const li = document.createElement('li');
+    li.textContent = task.text;
+    taskList.appendChild(li);
+  });
+}
+
+
+--------------------------------------------------
+--------------------------------------------------
+Info:
+--------------------------------------------------
+--------------------------------------------------
+File Name: storage.js
+File Size: 316 Bytes
+File Path: Z:\programmation\Jan25\cours_nodeJS\prj\src\js\storage.js
+--------------------------------------------------
+--------------------------------------------------
+Content:
+--------------------------------------------------
+--------------------------------------------------
+const TASKS_KEY = 'tasks';
+
+export function saveTask(task) {
+  const tasks = getTasks();
+  tasks.push({ id: Date.now(), text: task, completed: false });
+  localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+}
+
+export function getTasks() {
+  return JSON.parse(localStorage.getItem(TASKS_KEY)) || [];
+}
+
+
